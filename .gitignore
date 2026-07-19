@@ -1,0 +1,14 @@
+backend/venv/
+backend/.env
+backend/embeddings/*.faiss
+backend/embeddings/*.pkl
+backend/**/__pycache__/
+*.pyc
+resumes/*
+!resumes/.gitkeep
+
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+.DS_Store
