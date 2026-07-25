@@ -3,8 +3,8 @@
 PoC chatbot that lets project managers find the best-matching employees via natural-language search, using Gemini for query understanding/summaries and FAISS for semantic skill matching.
 
 ## Stack
-- Backend: FastAPI + SQLAlchemy + PostgreSQL
-- AI: Gemini 2.5 Flash (chat) + `text-embedding-004` (embeddings) + FAISS
+- Backend: FastAPI + SQLAlchemy (SQLite locally, PostgreSQL in production)
+- AI: Gemini 2.5 Flash (chat) + `gemini-embedding-001` (embeddings) + FAISS
 - Frontend: React + Vite + Material UI + Recharts
 
 ## Run locally
@@ -15,9 +15,17 @@ cd backend
 python -m venv venv
 venv\Scripts\activate          # Windows
 pip install -r requirements.txt
-copy .env.example .env         # then fill in DATABASE_URL and GEMINI_API_KEY
+copy .env.example .env         # then fill in GEMINI_API_KEY
 ```
-Create the Postgres database referenced in `DATABASE_URL` (default name `genai_resource_allocation`), then seed sample data:
+Set `GEMINI_API_KEY` in `.env` (get one free at https://aistudio.google.com/apikey).
+
+Local dev uses SQLite by default — no database server to install. Set:
+```
+DATABASE_URL=sqlite:///./genai_resource.db
+```
+(The models are database-agnostic, so the same code runs on PostgreSQL in production — just point `DATABASE_URL` at your Postgres instance.)
+
+Seed sample data (creates tables, inserts 15 employees, builds the FAISS index — takes ~1 min as it calls the Gemini embeddings API):
 ```
 python -m app.seed
 ```
@@ -59,3 +67,42 @@ Note: Render's free-tier filesystem is ephemeral — the FAISS index file gets r
 
 ## API endpoints
 `POST /login` · `POST /uploadResume` · `GET /employees` · `POST /searchCandidates` · `GET /employee/{id}` · `POST /shortlist` · `GET /shortlist` · `GET /analytics`
+
+Interactive API docs are available at http://localhost:8000/docs once the backend is running.
+
+## Feature status
+
+All features below were verified end-to-end against a running stack:
+
+| SRD requirement | Status |
+| --- | --- |
+| Login screen (dummy auth) | Working |
+| Chatbot interface (natural-language query) | Working |
+| Employee database (15 seeded profiles) | Working |
+| Resume upload — PDF + DOCX | Working |
+| AI skill matching (related-skill understanding) | Working |
+| Semantic search (Gemini embeddings + FAISS) | Working |
+| Candidate ranking (weighted 40/20/15/10/10/5) | Working |
+| AI summary per candidate | Working |
+| Recommendation explanation | Working |
+| Candidate card (name, exp, skills, match %) | Working |
+| Employee profile page | Working |
+| Shortlist | Working |
+| Analytics dashboard | Working |
+
+Resume upload extracts skills, certifications, projects, domain experience and years
+of experience via Gemini, then adds the new profile to the FAISS index immediately —
+an uploaded candidate is searchable without restarting or re-seeding.
+
+## Scoring weights
+
+Candidate match score is a weighted blend (defined in `backend/app/chatbot/ranking.py`):
+
+| Factor | Weight |
+| --- | --- |
+| Skill match | 40% |
+| Experience | 20% |
+| Availability | 15% |
+| Certifications | 10% |
+| Previous projects | 10% |
+| Performance rating | 5% |

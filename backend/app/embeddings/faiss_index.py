@@ -7,7 +7,7 @@ import numpy as np
 from app.chatbot.gemini_client import embed_text
 from app.core.config import settings
 
-_EMBED_DIM = 768  # text-embedding-004 output size
+_EMBED_DIM = 3072  # gemini-embedding-001 output size
 
 _meta_path = settings.faiss_index_path + ".meta.pkl"
 

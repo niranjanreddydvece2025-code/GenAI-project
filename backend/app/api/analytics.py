@@ -30,7 +30,7 @@ def get_analytics(db: Session = Depends(get_db)):
                 requested_skill_counter[word.strip(".").title()] += 1
 
     alloc_days = [
-        (a.allocation_date - e.created_at.date()).days
+        max((a.allocation_date - e.created_at.date()).days, 0)
         for a in allocations
         for e in [next((emp for emp in employees if emp.id == a.employee_id), None)]
         if e is not None and a.allocation_date and e.created_at

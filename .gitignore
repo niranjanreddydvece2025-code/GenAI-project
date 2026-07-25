@@ -4,6 +4,11 @@ backend/embeddings/*.faiss
 backend/embeddings/*.pkl
 backend/**/__pycache__/
 *.pyc
+
+# Local SQLite database (regenerate with: python -m app.seed)
+*.db
+*.db-shm
+*.db-wal
 resumes/*
 !resumes/.gitkeep
 
