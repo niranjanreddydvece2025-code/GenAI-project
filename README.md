@@ -44,6 +44,10 @@ Visit http://localhost:5173. The Vite dev server proxies `/api` to `http://local
 
 Login is a dummy PoC login — any email/password works. An email containing `rm` (e.g. `rm@company.com`) logs in as Resource Manager, anything else as Project Manager.
 
+The role changes what you see: Resource Managers get an extra **Upload Resume** tab, since
+uploading employee profiles is their responsibility in the SRD. Project Managers
+(e.g. `pm@company.com`) get search, shortlist and analytics.
+
 ## Deploy to production (Render backend + Vercel frontend)
 
 ### Backend on Render
@@ -79,7 +83,7 @@ All features below were verified end-to-end against a running stack:
 | Login screen (dummy auth) | Working |
 | Chatbot interface (natural-language query) | Working |
 | Employee database (15 seeded profiles) | Working |
-| Resume upload — PDF + DOCX | Working |
+| Resume upload — PDF + DOCX | Working (Resource Manager only) |
 | AI skill matching (related-skill understanding) | Working |
 | Semantic search (Gemini embeddings + FAISS) | Working |
 | Candidate ranking (weighted 40/20/15/10/10/5) | Working |

@@ -10,12 +10,17 @@ const TABS = [
   { label: "Analytics", path: "/analytics" },
 ];
 
+// Uploading employee profiles is a Resource Manager responsibility.
+const RESOURCE_MANAGER_TABS = [{ label: "Upload Resume", path: "/upload" }];
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const currentTab = TABS.some((t) => t.path === location.pathname) ? location.pathname : false;
+  const tabs =
+    user?.role === "resource_manager" ? [...TABS, ...RESOURCE_MANAGER_TABS] : TABS;
+  const currentTab = tabs.some((t) => t.path === location.pathname) ? location.pathname : false;
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
@@ -31,7 +36,7 @@ export default function Layout() {
             indicatorColor="secondary"
             sx={{ flexGrow: 1 }}
           >
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <Tab key={t.path} label={t.label} value={t.path} />
             ))}
           </Tabs>

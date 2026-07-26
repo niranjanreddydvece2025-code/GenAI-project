@@ -7,6 +7,7 @@ import ChatbotPage from "./pages/ChatbotPage.jsx";
 import EmployeeProfilePage from "./pages/EmployeeProfilePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ShortlistPage from "./pages/ShortlistPage.jsx";
+import UploadResumePage from "./pages/UploadResumePage.jsx";
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ function AppRoutes() {
         <Route path="employee/:id" element={<EmployeeProfilePage />} />
         <Route path="shortlist" element={<ShortlistPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="upload" element={<UploadResumePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
