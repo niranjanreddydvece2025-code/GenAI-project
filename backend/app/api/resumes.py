@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.chatbot.gemini_client import extract_resume_data
+from app.chatbot.gemini_client import GeminiUnavailable, extract_resume_data
 from app.chatbot.resume_parser import extract_text
 from app.core.db import get_db
 from app.embeddings.faiss_index import employee_index
@@ -59,6 +59,11 @@ async def upload_resume(
     db.commit()
     db.refresh(employee)
 
-    employee_index.add_employee(employee)
+    # The candidate is already saved; a failed embedding just means they are found
+    # by skill matching until the index rebuilds on a later search.
+    try:
+        employee_index.add_employee(employee)
+    except GeminiUnavailable:
+        pass
 
     return employee

@@ -1,5 +1,6 @@
 import os
 import pickle
+import threading
 
 import faiss
 import numpy as np
@@ -18,6 +19,7 @@ class EmployeeIndex:
     def __init__(self):
         self.index = faiss.IndexFlatIP(_EMBED_DIM)
         self.employee_ids: list[int] = []
+        self._lock = threading.Lock()
 
     def _profile_text(self, employee) -> str:
         parts = [
@@ -68,12 +70,29 @@ class EmployeeIndex:
             pickle.dump(self.employee_ids, f)
 
     def load(self) -> bool:
-        if not os.path.exists(settings.faiss_index_path):
+        if not os.path.exists(settings.faiss_index_path) or not os.path.exists(_meta_path):
             return False
         self.index = faiss.read_index(settings.faiss_index_path)
         with open(_meta_path, "rb") as f:
             self.employee_ids = pickle.load(f)
         return True
+
+    def ensure_built(self, db) -> None:
+        """Rebuild from the database if the index is missing or stale.
+
+        Hosts with an ephemeral filesystem (Render's free tier, for one) lose the
+        saved index on every redeploy. Without this, `search` would quietly return
+        no candidates even though the employees are still in the database.
+        """
+        from app.models.models import Employee  # imported here to avoid a circular import
+
+        with self._lock:
+            employee_count = db.query(Employee).count()
+            if employee_count == 0 or self.index.ntotal == employee_count:
+                return
+            if self.load() and self.index.ntotal == employee_count:
+                return
+            self.build(db.query(Employee).all())
 
 
 employee_index = EmployeeIndex()

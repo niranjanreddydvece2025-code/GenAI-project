@@ -3,6 +3,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/genai_resource_allocation"
+
+    # Chat/reasoning runs on OpenRouter, which has a far more generous free tier than
+    # Gemini's 20 chat requests per day. Embeddings stay on Gemini — OpenRouter has no
+    # embeddings endpoint, and Gemini meters embeddings under a separate, larger quota.
+    openrouter_api_key: str = ""
+    openrouter_model: str = "google/gemma-4-26b-a4b-it:free"
+    openrouter_fallback_model: str = "openai/gpt-oss-20b:free"
+
     gemini_api_key: str = ""
     gemini_chat_model: str = "gemini-2.5-flash"
     gemini_embed_model: str = "models/gemini-embedding-001"

@@ -2,10 +2,55 @@
 
 PoC chatbot that lets project managers find the best-matching employees via natural-language search, using Gemini for query understanding/summaries and FAISS for semantic skill matching.
 
+## Quick start (clone and run)
+
+```bash
+git clone https://github.com/Sivakumarraj/cap.git
+cd cap
+```
+
+**Windows (PowerShell):**
+```powershell
+.\setup.ps1
+.\run.ps1
+```
+
+**macOS / Linux:**
+```bash
+chmod +x setup.sh run.sh
+./setup.sh
+./run.sh
+```
+
+`setup` creates the Python venv, installs backend and frontend dependencies, and seeds
+15 sample employees. `run` starts both servers. Then open **http://localhost:5173** and
+sign in with any email and password (`pm@company.com` for Project Manager,
+`rm@company.com` for Resource Manager).
+
+You need **Python 3.10+** and **Node.js 18+** installed. Nothing else — no database
+server, no Docker.
+
+### API keys
+
+`setup` copies `backend/.env.example` to `backend/.env`. Add your own free keys there:
+
+| Key | Used for | Get one free at |
+| --- | --- | --- |
+| `OPENROUTER_API_KEY` | Query understanding, summaries, resume extraction | https://openrouter.ai/keys |
+| `GEMINI_API_KEY` | Embeddings for semantic search | https://aistudio.google.com/apikey |
+
+The app runs **without** either key — search falls back to keyword skill matching and
+summaries are generated from the employee's own fields. You just lose semantic matching
+and AI-written prose. Nothing errors out.
+
 ## Stack
 - Backend: FastAPI + SQLAlchemy (SQLite locally, PostgreSQL in production)
-- AI: Gemini 2.5 Flash (chat) + `gemini-embedding-001` (embeddings) + FAISS
+- AI: OpenRouter free models (chat) + Gemini `gemini-embedding-001` (embeddings) + FAISS
 - Frontend: React + Vite + Material UI + Recharts
+
+Chat and embeddings are split across two providers deliberately: OpenRouter has no
+embeddings endpoint, and Gemini's free chat tier allows only 20 requests per day, which
+a single seed run would exhaust.
 
 ## Run locally
 

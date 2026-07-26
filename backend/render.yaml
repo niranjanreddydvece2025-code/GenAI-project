@@ -7,15 +7,17 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: genai-resource-allocation-db
+          property: connectionString
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_CHAT_MODEL
         value: gemini-2.5-flash
       - key: GEMINI_EMBED_MODEL
-        value: models/text-embedding-004
+        value: models/gemini-embedding-001
       - key: JWT_SECRET
-        sync: false
+        generateValue: true
       - key: FAISS_INDEX_PATH
         value: ./embeddings/employee_index.faiss
       - key: CORS_ORIGINS

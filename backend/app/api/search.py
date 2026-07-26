@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.chatbot.gemini_client import generate_candidate_summary, parse_search_query
+from app.chatbot.gemini_client import (
+    GeminiUnavailable,
+    generate_candidate_summary,
+    parse_search_query,
+)
 from app.chatbot.ranking import score_candidate
 from app.core.db import get_db
 from app.embeddings.faiss_index import employee_index
@@ -15,7 +19,13 @@ router = APIRouter(tags=["search"])
 def search_candidates(payload: SearchRequest, db: Session = Depends(get_db)):
     criteria = parse_search_query(payload.query)
 
-    semantic_hits = dict(employee_index.search(payload.query, top_k=50))
+    # Rebuilds the index if a redeploy wiped it, so search never silently returns nothing.
+    # Without embeddings we simply score on skill overlap instead of semantic similarity.
+    try:
+        employee_index.ensure_built(db)
+        semantic_hits = dict(employee_index.search(payload.query, top_k=50))
+    except GeminiUnavailable:
+        semantic_hits = {}
 
     all_employees = db.query(Employee).all()
     scored = []

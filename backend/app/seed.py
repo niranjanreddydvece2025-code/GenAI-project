@@ -5,6 +5,7 @@ Run with: python -m app.seed
 
 from datetime import date, timedelta
 
+from app.chatbot.gemini_client import GeminiUnavailable
 from app.core.db import Base, SessionLocal, engine
 from app.embeddings.faiss_index import employee_index
 from app.models.models import Allocation, Employee, Project
@@ -233,8 +234,15 @@ def run():
         print(f"Seeded {len(employees)} employees and {len(projects)} projects.")
 
         print("Building FAISS embedding index (calls Gemini embeddings API)...")
-        employee_index.build(employees)
-        print("Done.")
+        try:
+            employee_index.build(employees)
+            print("Done.")
+        except GeminiUnavailable as exc:
+            # Seeding the data is the important part; the index rebuilds itself on
+            # the first search once the API key or quota is working again.
+            print(f"Skipped the embedding index ({exc}).")
+            print("Data is seeded. Search will fall back to skill matching, and the")
+            print("index will build automatically on the first search once quota allows.")
     finally:
         db.close()
 
