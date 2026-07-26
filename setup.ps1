@@ -3,8 +3,24 @@
 # Creates the backend venv, installs dependencies, installs frontend packages
 # and seeds the database. Run .\run.ps1 afterwards to start both servers.
 
-$ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
+$python = "$root\backend\venv\Scripts\python.exe"
+
+# Windows PowerShell turns anything a native command writes to stderr into an error
+# record. Python writes deprecation warnings there, so "Stop" would abort the script
+# on harmless output. Exit codes are checked explicitly instead.
+$ErrorActionPreference = "Continue"
+$env:PYTHONWARNINGS = "ignore::FutureWarning"
+
+function Invoke-Step {
+    param([string]$Description, [scriptblock]$Action)
+    Write-Host $Description -ForegroundColor Yellow
+    & $Action
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "`nFAILED: $Description (exit code $LASTEXITCODE)" -ForegroundColor Red
+        exit 1
+    }
+}
 
 Write-Host "`n=== GenAI Resource Allocation - setup ===`n" -ForegroundColor Cyan
 
@@ -19,13 +35,18 @@ foreach ($tool in @("python", "npm")) {
 }
 
 # --- Backend -----------------------------------------------------------------
-Write-Host "[1/4] Creating the Python virtual environment..." -ForegroundColor Yellow
 Set-Location "$root\backend"
-if (-not (Test-Path "venv")) { python -m venv venv }
 
-Write-Host "[2/4] Installing backend dependencies (this takes a couple of minutes)..." -ForegroundColor Yellow
-& "$root\backend\venv\Scripts\python.exe" -m pip install --upgrade pip --quiet
-& "$root\backend\venv\Scripts\python.exe" -m pip install -r requirements.txt --quiet
+if (-not (Test-Path $python)) {
+    Invoke-Step "[1/4] Creating the Python virtual environment..." { python -m venv venv }
+} else {
+    Write-Host "[1/4] Virtual environment already exists, skipping." -ForegroundColor Yellow
+}
+
+Invoke-Step "[2/4] Installing backend dependencies (this takes a couple of minutes)..." {
+    & $python -m pip install --upgrade pip --quiet
+    & $python -m pip install -r requirements.txt --quiet
+}
 
 # --- Environment file --------------------------------------------------------
 if (-not (Test-Path ".env")) {
@@ -39,14 +60,12 @@ if (-not (Test-Path ".env")) {
 }
 
 # --- Frontend ----------------------------------------------------------------
-Write-Host "[3/4] Installing frontend packages..." -ForegroundColor Yellow
 Set-Location "$root\frontend"
-npm install --silent
+Invoke-Step "[3/4] Installing frontend packages..." { npm install --silent }
 
 # --- Seed --------------------------------------------------------------------
-Write-Host "[4/4] Seeding the database with 15 sample employees..." -ForegroundColor Yellow
 Set-Location "$root\backend"
-& "$root\backend\venv\Scripts\python.exe" -m app.seed
+Invoke-Step "[4/4] Seeding the database with 15 sample employees..." { & $python -m app.seed }
 
 Set-Location $root
 Write-Host "`n=== Setup complete ===" -ForegroundColor Green
