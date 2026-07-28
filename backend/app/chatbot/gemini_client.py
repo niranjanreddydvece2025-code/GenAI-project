@@ -15,15 +15,28 @@ import json
 import logging
 import re
 
-import google.generativeai as genai
 import requests
-from google.api_core import exceptions as google_exceptions
+from google import genai
+from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-genai.configure(api_key=settings.gemini_api_key)
+# Created lazily: constructing a client without a key raises, and the app is
+# designed to run key-less and fall back to keyword matching.
+_genai_client: genai.Client | None = None
+
+
+def _get_genai_client() -> genai.Client:
+    global _genai_client
+    if _genai_client is None:
+        if not settings.gemini_api_key:
+            raise GeminiUnavailable("no Gemini API key configured")
+        _genai_client = genai.Client(api_key=settings.gemini_api_key)
+    return _genai_client
+
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -85,16 +98,16 @@ def _strip_fences(text: str) -> str:
 def embed_text(text: str, task_type: str = "RETRIEVAL_DOCUMENT") -> list[float]:
     """Embed text. Raises GeminiUnavailable so callers can skip semantic search."""
     try:
-        result = genai.embed_content(
+        result = _get_genai_client().models.embed_content(
             model=settings.gemini_embed_model,
-            content=text,
-            task_type=task_type,
+            contents=text,
+            config=genai_types.EmbedContentConfig(task_type=task_type),
         )
-    except google_exceptions.ResourceExhausted as exc:
-        raise GeminiUnavailable("embedding quota exhausted") from exc
-    except google_exceptions.GoogleAPIError as exc:
+    except genai_errors.APIError as exc:
+        if getattr(exc, "code", None) == 429:
+            raise GeminiUnavailable("embedding quota exhausted") from exc
         raise GeminiUnavailable(str(exc)) from exc
-    return result["embedding"]
+    return list(result.embeddings[0].values)
 
 
 # Words that carry no signal when we have to parse a query without the model.

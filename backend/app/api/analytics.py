@@ -22,12 +22,20 @@ def get_analytics(db: Session = Depends(get_db)):
     for emp in employees:
         skill_counter.update(emp.skills or [])
 
+    # Count only skills the workforce actually has, matched against the query text.
+    # Splitting on whitespace instead would rank filler words ("find", "with",
+    # "developers") above real skills, and would break multi-word skills like
+    # "Oracle EBS" into meaningless fragments.
+    known_skills = {skill.lower(): skill for skill in skill_counter}
     shortlists = db.query(Shortlist).all()
     requested_skill_counter: Counter = Counter()
     for s in shortlists:
-        if s.query_text:
-            for word in s.query_text.replace(",", " ").split():
-                requested_skill_counter[word.strip(".").title()] += 1
+        if not s.query_text:
+            continue
+        lowered = s.query_text.lower()
+        for skill_lower, skill in known_skills.items():
+            if skill_lower in lowered:
+                requested_skill_counter[skill] += 1
 
     alloc_days = [
         max((a.allocation_date - e.created_at.date()).days, 0)

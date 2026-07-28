@@ -4,6 +4,18 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import client from "../api/client.js";
 
+// Compares against the viewer's local date, not UTC. Using toISOString() here would
+// report someone free today as "available from <today>" for anyone east of UTC
+// during their early-morning hours. A past date still counts as available now.
+function isAvailableNow(availabilityDate) {
+  if (!availabilityDate) return false;
+  const today = new Date();
+  const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
+    today.getDate(),
+  ).padStart(2, "0")}`;
+  return availabilityDate <= localToday;
+}
+
 function Section({ title, children }) {
   return (
     <Box sx={{ mb: 3 }}>
@@ -99,7 +111,7 @@ export default function EmployeeProfilePage() {
             <Grid item xs={12} md={6}>
               <Section title="Availability">
                 <Typography variant="body2">
-                  {employee.availability_date === new Date().toISOString().slice(0, 10)
+                  {isAvailableNow(employee.availability_date)
                     ? "Available immediately"
                     : `Available from ${employee.availability_date}`}
                 </Typography>

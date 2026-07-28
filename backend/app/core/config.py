@@ -2,7 +2,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/genai_resource_allocation"
+    # SQLite by default so a fresh clone runs with no database server and no .env.
+    # Production points this at Postgres via the DATABASE_URL environment variable;
+    # the models are dialect-agnostic, so the same code serves both.
+    database_url: str = "sqlite:///./genai_resource.db"
 
     # Chat/reasoning runs on OpenRouter, which has a far more generous free tier than
     # Gemini's 20 chat requests per day. Embeddings stay on Gemini — OpenRouter has no

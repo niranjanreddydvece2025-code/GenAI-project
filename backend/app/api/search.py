@@ -34,6 +34,12 @@ def search_candidates(payload: SearchRequest, db: Session = Depends(get_db)):
         total, breakdown, reasons = score_candidate(emp, criteria, semantic_score)
         scored.append((emp, total, breakdown, reasons))
 
+    # Drop candidates with no skill signal at all. Without this every search returns
+    # a full page of results — a Kubernetes query would still surface Oracle
+    # consultants on the strength of their rating alone, and the "no matches" state
+    # could never be reached.
+    scored = [row for row in scored if row[2]["skill_match"] > 0]
+
     scored.sort(key=lambda x: x[1], reverse=True)
     headcount = max(criteria.get("headcount", 1) or 1, 1)
     top = scored[: max(payload.top_k, headcount)]

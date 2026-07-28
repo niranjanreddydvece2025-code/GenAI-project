@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 from app.models.models import Employee
@@ -12,14 +13,34 @@ WEIGHTS = {
 }
 
 
+def _tokens(skill: str) -> frozenset[str]:
+    """Split a skill into comparable word tokens: 'PL/SQL' -> {'pl', 'sql'}."""
+    return frozenset(t for t in re.split(r"[^a-z0-9+#]+", skill.lower()) if t)
+
+
+def _matches(required: frozenset[str], employee: frozenset[str]) -> bool:
+    """True when one skill's tokens fully contain the other's.
+
+    Set equality alone is too strict: a query for "Oracle" or "EBS" never equals
+    the stored skill "Oracle EBS", so the strongest Oracle consultants scored zero.
+    Containment lets a broad term match a specific skill and vice versa, while
+    still keeping "Java" and "JavaScript" apart — they share no token.
+    """
+    return required <= employee or employee <= required
+
+
 def _skill_score(employee_skills: list[str], required_skills: list[str], semantic_score: float) -> float:
     if not required_skills:
         return semantic_score
-    emp_skills_lower = {s.lower() for s in employee_skills}
-    req_lower = {s.lower() for s in required_skills}
-    exact_overlap = len(emp_skills_lower & req_lower) / len(req_lower) if req_lower else 0
-    # Blend exact keyword overlap with semantic similarity from FAISS to reward related-but-not-identical skills.
-    return max(exact_overlap, semantic_score)
+    emp_tokens = [_tokens(s) for s in employee_skills]
+    req_tokens = [_tokens(s) for s in required_skills]
+    req_tokens = [r for r in req_tokens if r]
+    if not req_tokens:
+        return semantic_score
+    matched = sum(1 for r in req_tokens if any(_matches(r, e) for e in emp_tokens))
+    overlap = matched / len(req_tokens)
+    # Blend keyword overlap with semantic similarity from FAISS to reward related-but-not-identical skills.
+    return max(overlap, semantic_score)
 
 
 def _experience_score(employee_years: float, min_years: float) -> float:

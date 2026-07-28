@@ -239,7 +239,7 @@ Both keys are **free**. Nothing errors out without them — the app gracefully d
 | **ORM** | SQLAlchemy 2 | Database-agnostic queries (SQLite + PostgreSQL) |
 | **Database** | SQLite (local) / PostgreSQL (prod) | Employee data, projects, shortlists |
 | **Chat AI** | OpenRouter (Gemma, GPT-OSS) | Query parsing, summaries, resume extraction |
-| **Embeddings** | Gemini `gemini-embedding-001` | Convert text to meaning vectors |
+| **Embeddings** | Gemini `gemini-embedding-001` (`google-genai` SDK) | Convert text to meaning vectors |
 | **Vector Search** | FAISS (by Meta) | Millisecond similarity search over embeddings |
 | **Auth** | JWT (python-jose) | Dummy token-based auth for PoC |
 | **Resume Parsing** | pypdf + python-docx | Extract text from PDF and DOCX files |
@@ -477,10 +477,13 @@ venv\Scripts\activate
 source venv/bin/activate
 
 pip install -r requirements.txt
-copy .env.example .env          # then add your API keys
+copy .env.example .env          # optional — only needed to add API keys
 python -m app.seed              # seed 15 employees (~1 min with embeddings)
 uvicorn app.main:app --reload --port 8000
 ```
+
+Without a `.env` the backend defaults to SQLite at `backend/genai_resource.db` and runs
+key-free, so these steps work on a bare clone.
 
 ### Frontend
 
