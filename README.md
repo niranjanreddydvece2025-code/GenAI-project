@@ -1,8 +1,192 @@
+<div align="center">
+
 # GenAI Resource Allocation Assistant
 
-PoC chatbot that lets project managers find the best-matching employees via natural-language search, using Gemini for query understanding/summaries and FAISS for semantic skill matching.
+**An AI-powered chatbot that helps project managers find the best available employees using natural language — instantly.**
 
-## Quick start (clone and run)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Material UI](https://img.shields.io/badge/MUI-6-007FFF?logo=mui&logoColor=white)](https://mui.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+[Quick Start](#-quick-start) · [Features](#-features) · [How It Works](#-how-it-works) · [Tech Stack](#-tech-stack) · [API Reference](#-api-reference) · [Deploy](#-deploy-to-production)
+
+</div>
+
+---
+
+## The Problem
+
+In most organizations, staffing a new project follows a painful cycle:
+
+```
+Manager raises request → Resource manager searches spreadsheets manually
+→ Multiple emails and Teams messages → Profiles reviewed one by one
+→ Candidates shortlisted → Days to weeks later, project can begin
+```
+
+**Common pain points:** slow turnaround, skill mismatches, bench resources overlooked, and delayed project onboarding.
+
+## The Solution
+
+This app replaces the entire manual process with **one chatbot query**:
+
+> *"Find two Oracle EBS developers with SQL, Finance domain experience, and immediate availability."*
+
+The system instantly returns:
+
+- **Best matching employees** — ranked by a weighted scoring algorithm
+- **Match percentage** — based on skills, experience, availability, certifications, projects, and rating
+- **AI-generated summary** — a professional 2-3 sentence recommendation for each candidate
+- **Explanation** — clear reasons why each person was recommended
+
+---
+
+## Features
+
+All 13 requirements from the Software Requirements Document are implemented and working:
+
+| # | Feature | Description |
+|---|---------|-------------|
+| 1 | **Login** | Dummy auth for PoC — any email/password works. Email determines role. |
+| 2 | **Chatbot Interface** | Natural language search — type what you need in plain English |
+| 3 | **Employee Database** | 15 pre-seeded employee profiles with full details |
+| 4 | **Resume Upload** | PDF and DOCX support with automatic AI extraction |
+| 5 | **AI Skill Matching** | Understands related skills (Oracle APEX → PL/SQL, Oracle SQL) |
+| 6 | **Semantic Search** | Gemini embeddings + FAISS for meaning-based matching |
+| 7 | **Candidate Ranking** | Weighted scoring: Skills 40%, Experience 20%, Availability 15%, Certs 10%, Projects 10%, Rating 5% |
+| 8 | **AI Summary** | Auto-generated professional candidate summaries |
+| 9 | **Recommendation Explanation** | Clear reasons for each recommendation |
+| 10 | **Candidate Cards** | Name, experience, skills, match %, availability at a glance |
+| 11 | **Employee Profile** | Full profile view with resume, projects, certifications, skill graph |
+| 12 | **Shortlist** | Save candidates for later review |
+| 13 | **Analytics Dashboard** | Bench count, allocation stats, skill distribution, most requested skills |
+
+### User Roles
+
+| Role | Email pattern | Access |
+|------|--------------|--------|
+| **Project Manager** | Any email (e.g. `pm@company.com`) | Search, view profiles, shortlist, analytics |
+| **Resource Manager** | Email containing "rm" (e.g. `rm@company.com`) | Everything above + resume upload |
+
+---
+
+## How It Works
+
+### Search Flow
+
+```mermaid
+flowchart TD
+    A["Manager types:\n'Find 2 Oracle developers\nwith Finance experience'"] --> B["AI parses the query\n(OpenRouter / Gemini)"]
+    B --> C{"Extract structured\ncriteria"}
+    C --> D["skills: Oracle, SQL, PL/SQL\ndomain: Finance\nheadcount: 2"]
+
+    D --> E["Semantic Search\n(Gemini Embeddings + FAISS)"]
+    D --> F["Load all employees\nfrom database"]
+
+    E --> G["Ranking Engine\nscores every employee"]
+    F --> G
+
+    G --> H["AI generates summary\nfor top candidates"]
+    H --> I["Return ranked\ncandidate cards"]
+
+    style A fill:#E8EEFF,stroke:#2D5BFF,color:#1A3DB8
+    style B fill:#FFF3E0,stroke:#D4760A,color:#8B4F07
+    style C fill:#FFF3E0,stroke:#D4760A,color:#8B4F07
+    style D fill:#FFF3E0,stroke:#D4760A,color:#8B4F07
+    style E fill:#FFF3E0,stroke:#D4760A,color:#8B4F07
+    style F fill:#FDEAEA,stroke:#D43B3B,color:#D43B3B
+    style G fill:#EEEBFA,stroke:#6B4FD8,color:#4A37A0
+    style H fill:#FFF3E0,stroke:#D4760A,color:#8B4F07
+    style I fill:#E4F5EC,stroke:#0A8754,color:#065E3A
+```
+
+### Architecture
+
+```mermaid
+flowchart LR
+    subgraph Frontend["Frontend (React + Vite)"]
+        UI[Material UI Components]
+        RC[Recharts Analytics]
+    end
+
+    subgraph Backend["Backend (FastAPI + Python)"]
+        API[REST API Endpoints]
+        RANK[Ranking Engine]
+        PARSE[Resume Parser]
+    end
+
+    subgraph AI["AI Layer"]
+        OR[OpenRouter\nQuery Understanding\n+ Summaries]
+        GE[Gemini\nEmbeddings]
+        FA[FAISS\nVector Search]
+    end
+
+    subgraph DB["Database"]
+        SQL[(SQLite / PostgreSQL)]
+    end
+
+    UI -->|HTTP /api| API
+    API --> RANK
+    API --> PARSE
+    RANK --> OR
+    RANK --> FA
+    PARSE --> OR
+    FA --> GE
+    API --> SQL
+
+    style Frontend fill:#E8EEFF,stroke:#2D5BFF
+    style Backend fill:#EEEBFA,stroke:#6B4FD8
+    style AI fill:#FFF3E0,stroke:#D4760A
+    style DB fill:#FDEAEA,stroke:#D43B3B
+```
+
+### Scoring Algorithm
+
+Each candidate receives a weighted match score:
+
+```mermaid
+pie title Candidate Scoring Weights
+    "Skill Match" : 40
+    "Experience" : 20
+    "Availability" : 15
+    "Certifications" : 10
+    "Previous Projects" : 10
+    "Performance Rating" : 5
+```
+
+**Skill match** uses both exact keyword overlap and semantic similarity from FAISS — so related-but-not-identical skills (e.g., searching "Oracle APEX" matches "PL/SQL") contribute to the score.
+
+### Resume Upload Flow
+
+```mermaid
+flowchart LR
+    A[Upload PDF/DOCX] --> B[Extract raw text\npypdf / python-docx]
+    B --> C[AI extracts structured data\nskills, certs, projects, years]
+    C --> D[Save to database]
+    D --> E[Add to FAISS index]
+    E --> F[Searchable\nimmediately]
+
+    style A fill:#E8EEFF,stroke:#2D5BFF,color:#1A3DB8
+    style C fill:#FFF3E0,stroke:#D4760A,color:#8B4F07
+    style F fill:#E4F5EC,stroke:#0A8754,color:#065E3A
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+| Tool | Version | Download |
+|------|---------|----------|
+| Python | 3.10+ | [python.org/downloads](https://www.python.org/downloads/) |
+| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+
+That's all. No Docker, no database server, no cloud accounts required.
+
+### Clone and run
 
 ```bash
 git clone https://github.com/Sivakumarraj/cap.git
@@ -11,147 +195,353 @@ cd cap
 
 **Windows (PowerShell):**
 ```powershell
-.\setup.ps1
-.\run.ps1
+.\setup.ps1    # creates venv, installs deps, seeds 15 employees (~2 min)
+.\run.ps1      # starts backend + frontend
 ```
 
 **macOS / Linux:**
 ```bash
 chmod +x setup.sh run.sh
-./setup.sh
-./run.sh
+./setup.sh     # creates venv, installs deps, seeds 15 employees (~2 min)
+./run.sh       # starts backend + frontend
 ```
 
-`setup` creates the Python venv, installs backend and frontend dependencies, and seeds
-15 sample employees. `run` starts both servers. Then open **http://localhost:5173** and
-sign in with any email and password (`pm@company.com` for Project Manager,
-`rm@company.com` for Resource Manager).
+Then open **http://localhost:5173** and sign in:
 
-You need **Python 3.10+** and **Node.js 18+** installed. Nothing else — no database
-server, no Docker.
+| Email | Role |
+|-------|------|
+| `pm@company.com` | Project Manager |
+| `rm@company.com` | Resource Manager (can upload resumes) |
 
-### API keys
+> Any email and password works. The email just determines your role.
 
-`setup` copies `backend/.env.example` to `backend/.env`. Add your own free keys there:
+### Add AI keys (optional)
 
-| Key | Used for | Get one free at |
-| --- | --- | --- |
-| `OPENROUTER_API_KEY` | Query understanding, summaries, resume extraction | https://openrouter.ai/keys |
-| `GEMINI_API_KEY` | Embeddings for semantic search | https://aistudio.google.com/apikey |
+The app runs **without** any API keys — search falls back to keyword matching and summaries are built from employee data. To enable AI features, edit `backend/.env`:
 
-The app runs **without** either key — search falls back to keyword skill matching and
-summaries are generated from the employee's own fields. You just lose semantic matching
-and AI-written prose. Nothing errors out.
+| Key | What it enables | Get it free at |
+|-----|----------------|----------------|
+| `OPENROUTER_API_KEY` | Query understanding + AI summaries | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| `GEMINI_API_KEY` | Semantic search (embeddings) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 
-## Stack
-- Backend: FastAPI + SQLAlchemy (SQLite locally, PostgreSQL in production)
-- AI: OpenRouter free models (chat) + Gemini `gemini-embedding-001` (embeddings) + FAISS
-- Frontend: React + Vite + Material UI + Recharts
+Both keys are **free**. Nothing errors out without them — the app gracefully degrades to keyword-based matching.
 
-Chat and embeddings are split across two providers deliberately: OpenRouter has no
-embeddings endpoint, and Gemini's free chat tier allows only 20 requests per day, which
-a single seed run would exhaust.
+---
 
-## Run locally
+## Tech Stack
 
-### 1. Backend
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Frontend** | React 18 + Vite | Single-page app with fast hot reload |
+| **UI Library** | Material UI 6 | Professional pre-built components |
+| **Charts** | Recharts | Bar charts, pie charts on analytics page |
+| **Backend** | FastAPI + Python | Modern async REST API |
+| **ORM** | SQLAlchemy 2 | Database-agnostic queries (SQLite + PostgreSQL) |
+| **Database** | SQLite (local) / PostgreSQL (prod) | Employee data, projects, shortlists |
+| **Chat AI** | OpenRouter (Gemma, GPT-OSS) | Query parsing, summaries, resume extraction |
+| **Embeddings** | Gemini `gemini-embedding-001` | Convert text to meaning vectors |
+| **Vector Search** | FAISS (by Meta) | Millisecond similarity search over embeddings |
+| **Auth** | JWT (python-jose) | Dummy token-based auth for PoC |
+| **Resume Parsing** | pypdf + python-docx | Extract text from PDF and DOCX files |
+
+> **Why two AI providers?** OpenRouter has a generous free chat tier but no embeddings endpoint. Gemini's free chat quota is only 20 req/day, but its embedding quota is large and separate. Splitting across both gives the best free-tier experience.
+
+---
+
+## Project Structure
+
 ```
+genai-resource-allocation/
+├── backend/
+│   ├── app/
+│   │   ├── api/                    # REST endpoints
+│   │   │   ├── auth.py             # POST /login — dummy JWT auth
+│   │   │   ├── search.py           # POST /searchCandidates — main search
+│   │   │   ├── employees.py        # GET /employees, /employee/{id}
+│   │   │   ├── resumes.py          # POST /uploadResume
+│   │   │   ├── shortlist.py        # POST + GET /shortlist
+│   │   │   └── analytics.py        # GET /analytics
+│   │   ├── chatbot/                # AI logic
+│   │   │   ├── gemini_client.py    # OpenRouter + Gemini API calls
+│   │   │   ├── ranking.py          # Weighted scoring algorithm
+│   │   │   └── resume_parser.py    # PDF/DOCX text extraction
+│   │   ├── core/
+│   │   │   ├── config.py           # Environment settings (Pydantic)
+│   │   │   └── db.py               # SQLAlchemy engine + session
+│   │   ├── embeddings/
+│   │   │   └── faiss_index.py      # FAISS index build/search/persist
+│   │   ├── models/
+│   │   │   └── models.py           # Employee, Project, Allocation, Shortlist
+│   │   ├── schemas/
+│   │   │   └── schemas.py          # Pydantic request/response models
+│   │   ├── main.py                 # FastAPI app entry point
+│   │   └── seed.py                 # Seed 15 sample employees + 3 projects
+│   ├── .env.example                # Template for API keys
+│   ├── requirements.txt            # Python dependencies
+│   └── render.yaml                 # Render deployment blueprint
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── LoginPage.jsx       # Login form
+│   │   │   ├── ChatbotPage.jsx     # Main search interface
+│   │   │   ├── EmployeeProfilePage.jsx
+│   │   │   ├── ShortlistPage.jsx
+│   │   │   ├── AnalyticsPage.jsx
+│   │   │   └── UploadResumePage.jsx
+│   │   ├── components/
+│   │   │   ├── CandidateCard.jsx   # Search result card
+│   │   │   └── Layout.jsx          # App shell with nav tabs
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx     # Auth state management
+│   │   ├── api/
+│   │   │   └── client.js           # Axios instance with JWT interceptor
+│   │   ├── App.jsx                 # Routes
+│   │   └── main.jsx                # React entry point
+│   ├── package.json
+│   ├── vite.config.js              # Dev proxy /api → localhost:8000
+│   └── vercel.json                 # Vercel SPA routing
+├── resumes/                        # Uploaded resumes stored here
+├── setup.ps1                       # Windows one-command setup
+├── setup.sh                        # macOS/Linux one-command setup
+├── run.ps1                         # Windows start both servers
+└── run.sh                          # macOS/Linux start both servers
+```
+
+---
+
+## API Reference
+
+All endpoints are available at `http://localhost:8000` when running locally. Interactive Swagger docs at [`/docs`](http://localhost:8000/docs).
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/login` | Sign in (any email/password) | No |
+| `POST` | `/searchCandidates` | Natural language employee search | Bearer |
+| `GET` | `/employees` | List all employees | Bearer |
+| `GET` | `/employee/{id}` | Get single employee profile | Bearer |
+| `POST` | `/uploadResume` | Upload PDF/DOCX, extract + create employee | Bearer |
+| `POST` | `/shortlist` | Add candidate to shortlist | Bearer |
+| `GET` | `/shortlist` | View shortlisted candidates | Bearer |
+| `GET` | `/analytics` | Dashboard stats (bench, allocated, skills) | Bearer |
+| `GET` | `/health` | Health check | No |
+
+### Example: Search
+
+```bash
+curl -X POST http://localhost:8000/searchCandidates \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"query": "Find two Oracle developers with Finance experience", "top_k": 5}'
+```
+
+**Response:**
+```json
+{
+  "query": "Find two Oracle developers with Finance experience",
+  "candidates": [
+    {
+      "employee": {
+        "id": 1,
+        "name": "Rahul Sharma",
+        "grade": "Senior Consultant",
+        "location": "Bangalore",
+        "experience_years": 5,
+        "skills": ["Oracle EBS", "Oracle SQL", "PL/SQL", "Oracle Forms", "Finance Modules"],
+        "certifications": ["Oracle Certified Professional"],
+        "availability_date": "2026-07-28",
+        "performance_rating": 4.8
+      },
+      "match_percent": 97.2,
+      "score_breakdown": {
+        "skill_match": 95.0,
+        "experience": 100.0,
+        "availability": 100.0,
+        "certifications": 100.0,
+        "projects": 85.0,
+        "rating": 96.0
+      },
+      "reasons": [
+        "95% skill match",
+        "Finance domain experience",
+        "Certified: Oracle Certified Professional",
+        "Available immediately"
+      ],
+      "ai_summary": "Rahul has 5 years of Oracle EBS experience..."
+    }
+  ]
+}
+```
+
+---
+
+## Database Schema
+
+```mermaid
+erDiagram
+    EMPLOYEES {
+        int id PK
+        string name
+        string grade
+        string location
+        float experience_years
+        json skills
+        json certifications
+        json previous_projects
+        json domain_experience
+        string current_allocation
+        date availability_date
+        string resume_path
+        text resume_text
+        float performance_rating
+        text ai_summary
+        int embedding_id
+        datetime created_at
+    }
+
+    PROJECTS {
+        int id PK
+        string project_name
+        json required_skills
+        string location
+        date start_date
+    }
+
+    ALLOCATIONS {
+        int id PK
+        int employee_id FK
+        int project_id FK
+        string allocation_status
+        date allocation_date
+    }
+
+    SHORTLISTS {
+        int id PK
+        int employee_id FK
+        string manager_email
+        text query_text
+        float match_score
+        datetime created_at
+    }
+
+    EMPLOYEES ||--o{ ALLOCATIONS : "allocated to"
+    PROJECTS ||--o{ ALLOCATIONS : "staffed by"
+    EMPLOYEES ||--o{ SHORTLISTS : "shortlisted in"
+```
+
+---
+
+## Deploy to Production
+
+### Backend on Render
+
+1. Push this repo to GitHub.
+2. In Render: **New → Blueprint**, point it at the repo — it picks up `backend/render.yaml`, which provisions a free Postgres database and a web service.
+   - Or manually: root directory `backend`, build command `pip install -r requirements.txt`, start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+3. Set environment variables on the web service:
+
+   | Variable | Value |
+   |----------|-------|
+   | `DATABASE_URL` | From Render Postgres (change prefix to `postgresql+psycopg2://`) |
+   | `GEMINI_API_KEY` | Your Gemini API key |
+   | `OPENROUTER_API_KEY` | Your OpenRouter API key |
+   | `JWT_SECRET` | Any random string |
+   | `CORS_ORIGINS` | Your Vercel frontend URL |
+
+4. Deploy, then run `python -m app.seed` once via Render's Shell tab.
+
+> **Note:** Render's free tier has an ephemeral filesystem — the FAISS index file gets rebuilt automatically on the first search after a redeploy.
+
+### Frontend on Vercel
+
+1. In Vercel: **New Project → import repo**, set root directory to `frontend`.
+2. It auto-detects Vite — `vercel.json` handles SPA routing.
+3. Set environment variable `VITE_API_URL` to your Render backend URL (e.g. `https://genai-resource-allocation-api.onrender.com`).
+4. Deploy. Copy the Vercel URL back to Render's `CORS_ORIGINS` env var.
+
+---
+
+## Run Locally (Manual Setup)
+
+If you prefer to set things up step by step instead of using the setup scripts:
+
+### Backend
+
+```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate          # Windows
+
+# Activate the virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
 pip install -r requirements.txt
-copy .env.example .env         # then fill in GEMINI_API_KEY
-```
-Set `GEMINI_API_KEY` in `.env` (get one free at https://aistudio.google.com/apikey).
-
-Local dev uses SQLite by default — no database server to install. Set:
-```
-DATABASE_URL=sqlite:///./genai_resource.db
-```
-(The models are database-agnostic, so the same code runs on PostgreSQL in production — just point `DATABASE_URL` at your Postgres instance.)
-
-Seed sample data (creates tables, inserts 15 employees, builds the FAISS index — takes ~1 min as it calls the Gemini embeddings API):
-```
-python -m app.seed
-```
-Start the API:
-```
+copy .env.example .env          # then add your API keys
+python -m app.seed              # seed 15 employees (~1 min with embeddings)
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Frontend
-```
+### Frontend
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
-Visit http://localhost:5173. The Vite dev server proxies `/api` to `http://localhost:8000` (see `vite.config.js`), so no `.env` is needed locally.
 
-Login is a dummy PoC login — any email/password works. An email containing `rm` (e.g. `rm@company.com`) logs in as Resource Manager, anything else as Project Manager.
+Visit **http://localhost:5173**. The Vite dev server proxies `/api` to `http://localhost:8000` automatically.
 
-The role changes what you see: Resource Managers get an extra **Upload Resume** tab, since
-uploading employee profiles is their responsibility in the SRD. Project Managers
-(e.g. `pm@company.com`) get search, shortlist and analytics.
+---
 
-## Deploy to production (Render backend + Vercel frontend)
+## Sample Employees
 
-### Backend on Render
-1. Push this repo to GitHub.
-2. In Render: New → Blueprint, point it at the repo — it will pick up `backend/render.yaml`, which provisions a free Postgres database and a web service.
-   - Alternatively, create the web service manually: root directory `backend`, build command `pip install -r requirements.txt`, start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-3. Set environment variables on the web service:
-   - `DATABASE_URL` — from the Render Postgres instance (use the **Internal Database URL**, and change its scheme prefix to `postgresql+psycopg2://`)
-   - `GEMINI_API_KEY` — your Gemini API key
-   - `JWT_SECRET` — any random string
-   - `CORS_ORIGINS` — your Vercel frontend URL once you have it, e.g. `https://your-app.vercel.app`
-4. Deploy, then run the seed script once via Render's Shell tab: `python -m app.seed`
+The seed script creates 15 realistic employee profiles spanning:
 
-Note: Render's free-tier filesystem is ephemeral — the FAISS index file gets rebuilt by `app.seed` and by `/uploadResume`, but a redeploy wipes it. Re-run `python -m app.seed` after a redeploy, or upgrade to a paid plan with a persistent disk mounted at `FAISS_INDEX_PATH`'s directory.
+| Skill Area | Employees | Locations |
+|-----------|-----------|-----------|
+| Oracle EBS / SQL / APEX | 5 | Bangalore, Hyderabad, Kolkata, Gurugram |
+| Java / Spring Boot / AWS | 5 | Bangalore, Hyderabad, Chennai, Pune |
+| React / Node.js / Frontend | 2 | Bangalore |
+| Python / ML / Data | 1 | Chennai |
+| DevOps / Kubernetes / Terraform | 1 | Bangalore |
+| Data Warehousing / ETL | 1 | Hyderabad |
 
-### Frontend on Vercel
-1. In Vercel: New Project → import the repo, set root directory to `frontend`.
-2. It will auto-detect Vite (build command `npm run build`, output `dist`) — `vercel.json` is already included for SPA routing.
-3. Set environment variable `VITE_API_URL` to your Render backend's URL, e.g. `https://genai-resource-allocation-api.onrender.com`.
-4. Deploy. Once live, copy the Vercel URL back into Render's `CORS_ORIGINS` env var and redeploy the backend.
+Plus 3 sample projects and 5 allocations so analytics dashboards have data out of the box.
 
-## API endpoints
-`POST /login` · `POST /uploadResume` · `GET /employees` · `POST /searchCandidates` · `GET /employee/{id}` · `POST /shortlist` · `GET /shortlist` · `GET /analytics`
+---
 
-Interactive API docs are available at http://localhost:8000/docs once the backend is running.
+## Graceful Degradation
 
-## Feature status
+The app is designed to work at every level of API access:
 
-All features below were verified end-to-end against a running stack:
+| Scenario | Search | Summaries | Resume Extraction |
+|----------|--------|-----------|-------------------|
+| Both API keys set | Semantic (FAISS) + keyword | AI-generated | AI-powered |
+| Only `GEMINI_API_KEY` | Semantic (FAISS) + keyword | Built from employee data | Keyword scan |
+| Only `OPENROUTER_API_KEY` | Keyword matching only | AI-generated | AI-powered |
+| No API keys | Keyword matching only | Built from employee data | Keyword scan |
 
-| SRD requirement | Status |
-| --- | --- |
-| Login screen (dummy auth) | Working |
-| Chatbot interface (natural-language query) | Working |
-| Employee database (15 seeded profiles) | Working |
-| Resume upload — PDF + DOCX | Working (Resource Manager only) |
-| AI skill matching (related-skill understanding) | Working |
-| Semantic search (Gemini embeddings + FAISS) | Working |
-| Candidate ranking (weighted 40/20/15/10/10/5) | Working |
-| AI summary per candidate | Working |
-| Recommendation explanation | Working |
-| Candidate card (name, exp, skills, match %) | Working |
-| Employee profile page | Working |
-| Shortlist | Working |
-| Analytics dashboard | Working |
+Nothing errors out. The app gets less "smart" without keys but remains fully functional.
 
-Resume upload extracts skills, certifications, projects, domain experience and years
-of experience via Gemini, then adds the new profile to the FAISS index immediately —
-an uploaded candidate is searchable without restarting or re-seeding.
+---
 
-## Scoring weights
+## Future Scope
 
-Candidate match score is a weighted blend (defined in `backend/app/chatbot/ranking.py`):
+- Microsoft Teams integration
+- HRMS / HR system integration
+- Email notifications for shortlisted candidates
+- Interview scheduling
+- Project demand prediction
+- Learning recommendation engine
+- Voice chat interface
 
-| Factor | Weight |
-| --- | --- |
-| Skill match | 40% |
-| Experience | 20% |
-| Availability | 15% |
-| Certifications | 10% |
-| Previous projects | 10% |
-| Performance rating | 5% |
+---
+
+<div align="center">
+
+**Built with FastAPI + React + Gemini AI**
+
+Made by [Sivakumar](https://github.com/Sivakumarraj)
+
+</div>
