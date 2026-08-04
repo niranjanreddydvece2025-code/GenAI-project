@@ -545,6 +545,6 @@ Nothing errors out. The app gets less "smart" without keys but remains fully fun
 
 **Built with FastAPI + React + Gemini AI**
 
-Made by [Sivakumar](https://github.com/Sivakumarraj)
+Made by [Niranjan Reddy]
 
 </div>
