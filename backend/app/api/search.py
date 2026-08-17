@@ -9,7 +9,7 @@ from app.chatbot.gemini_client import (
 from app.chatbot.ranking import score_candidate
 from app.core.db import get_db
 from app.embeddings.faiss_index import employee_index
-from app.models.models import Employee
+from app.models.models import Allocation, Employee
 from app.schemas.schemas import CandidateResult, EmployeeOut, SearchRequest, SearchResponse
 
 router = APIRouter(tags=["search"])
@@ -18,6 +18,7 @@ router = APIRouter(tags=["search"])
 @router.post("/searchCandidates", response_model=SearchResponse)
 def search_candidates(payload: SearchRequest, db: Session = Depends(get_db)):
     criteria = parse_search_query(payload.query)
+    allocated_ids = {employee_id for (employee_id,) in db.query(Allocation.employee_id).distinct()}
 
     # Rebuilds the index if a redeploy wiped it, so search never silently returns nothing.
     # Without embeddings we simply score on skill overlap instead of semantic similarity.
@@ -27,7 +28,7 @@ def search_candidates(payload: SearchRequest, db: Session = Depends(get_db)):
     except GeminiUnavailable:
         semantic_hits = {}
 
-    all_employees = db.query(Employee).all()
+    all_employees = db.query(Employee).filter(Employee.id.not_in(allocated_ids)).all()
     scored = []
     for emp in all_employees:
         semantic_score = semantic_hits.get(emp.id, 0.0)
