@@ -126,6 +126,12 @@ def _fallback_criteria(query: str) -> dict:
     """Pull rough criteria out of a query using plain text rules, no model needed."""
     lowered = query.lower()
 
+    # Accept structured filters such as "location: Hyderabad" or "skills: Java; location: Bengaluru".
+    location = ""
+    match = re.search(r"location\s*:\s*([^;]+)", query, flags=re.IGNORECASE)
+    if match:
+        location = match.group(1).strip().strip("\"' ")
+
     years = 0
     match = re.search(r"(\d+)\s*\+?\s*(?:years|yrs)", lowered)
     if match:
@@ -141,14 +147,22 @@ def _fallback_criteria(query: str) -> dict:
                 headcount = value
                 break
 
-    # Anything left after removing filler is treated as a skill term.
-    tokens = re.findall(r"[a-zA-Z][a-zA-Z+#./-]*", query)
-    skills = [t for t in tokens if t.lower() not in _STOPWORDS and len(t) > 1]
+    location_tokens = {
+        t.lower() for t in re.findall(r"[a-zA-Z][a-zA-Z+#./-]*", location)
+    } if location else set()
+
+    # Anything left after removing filler and structured field names is treated as a skill term.
+    normalized_query = re.sub(r"(?i)\b(location|skills|domain|certifications?)\s*:\s*", " ", query)
+    tokens = re.findall(r"[a-zA-Z][a-zA-Z+#./-]*", normalized_query)
+    skills = [
+        t for t in tokens
+        if t.lower() not in _STOPWORDS and len(t) > 1 and t.lower() not in location_tokens
+    ]
 
     return {
-        "skills": skills or [query],
+        "skills": skills or ([query] if not location else []),
         "domain": "",
-        "location": "",
+        "location": location,
         "min_experience_years": years,
         "headcount": max(headcount, 1),
         "availability_required": any(

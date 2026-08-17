@@ -28,18 +28,29 @@ def search_candidates(payload: SearchRequest, db: Session = Depends(get_db)):
     except GeminiUnavailable:
         semantic_hits = {}
 
+    location_filter = (criteria.get("location") or "").strip()
     all_employees = db.query(Employee).filter(Employee.id.not_in(allocated_ids)).all()
+    if location_filter:
+        all_employees = [
+            emp for emp in all_employees
+            if (emp.location or "").strip().lower() == location_filter.lower()
+        ]
+
     scored = []
     for emp in all_employees:
         semantic_score = semantic_hits.get(emp.id, 0.0)
         total, breakdown, reasons = score_candidate(emp, criteria, semantic_score)
         scored.append((emp, total, breakdown, reasons))
 
-    # Drop candidates with no skill signal at all. Without this every search returns
-    # a full page of results — a Kubernetes query would still surface Oracle
-    # consultants on the strength of their rating alone, and the "no matches" state
-    # could never be reached.
-    scored = [row for row in scored if row[2]["skill_match"] > 0]
+    # A location-only search should still return matches even when there is no
+    # strong skill signal. We keep the "no results" guard for pure skill-less
+    # noise, but allow a valid location filter to surface candidates.
+    has_location_filter = bool(criteria.get("location") and criteria.get("location").strip())
+    scored = [
+        row
+        for row in scored
+        if row[2]["skill_match"] > 0 or (has_location_filter and row[2]["location"] > 0)
+    ]
 
     scored.sort(key=lambda x: x[1], reverse=True)
     headcount = max(criteria.get("headcount", 1) or 1, 1)

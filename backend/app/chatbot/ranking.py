@@ -4,12 +4,13 @@ from datetime import date
 from app.models.models import Employee
 
 WEIGHTS = {
-    "skill_match": 0.40,
-    "experience": 0.20,
-    "availability": 0.15,
+    "skill_match": 0.30,
+    "experience": 0.15,
+    "availability": 0.10,
     "certifications": 0.10,
     "projects": 0.10,
     "rating": 0.05,
+    "location": 0.20,
 }
 
 
@@ -123,6 +124,7 @@ def score_candidate(employee: Employee, criteria: dict, semantic_score: float) -
         + cert_s * WEIGHTS["certifications"]
         + proj_s * WEIGHTS["projects"]
         + rating_s * WEIGHTS["rating"]
+        + loc_s * WEIGHTS["location"]
     ) * 100
 
     reasons = []
