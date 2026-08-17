@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analytics, auth, employees, resumes, search, shortlist
+from app.api import allocations, analytics, auth, employees, resumes, search, shortlist
 from app.core.config import settings
 from app.core.db import Base, engine
 from app.embeddings.faiss_index import employee_index
@@ -28,6 +28,8 @@ app.include_router(employees.router)
 app.include_router(search.router)
 app.include_router(resumes.router)
 app.include_router(shortlist.router)
+app.include_router(allocations.router)
+app.include_router(analytics.router)
 app.include_router(analytics.router)
 
 

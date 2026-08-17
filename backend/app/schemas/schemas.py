@@ -78,3 +78,20 @@ class AnalyticsResponse(BaseModel):
     skill_distribution: dict[str, int]
     most_requested_skills: list[dict[str, Any]]
     average_allocation_time_days: Optional[float]
+
+
+class AllocationRequest(BaseModel):
+    employee_id: int
+    project_id: int
+    allocation_date: date
+
+
+class AllocationOut(BaseModel):
+    id: int
+    employee_id: int
+    project_id: int
+    allocation_status: str
+    allocation_date: date
+
+    class Config:
+        from_attributes = True
