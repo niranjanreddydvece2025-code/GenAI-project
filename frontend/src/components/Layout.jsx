@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 const TABS = [
   { label: "Chatbot Search", path: "/" },
+  { label: "Location Search", path: "/location" },
   { label: "Shortlist", path: "/shortlist" },
   { label: "Analytics", path: "/analytics" },
 ];

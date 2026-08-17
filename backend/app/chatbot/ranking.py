@@ -4,12 +4,13 @@ from datetime import date
 from app.models.models import Employee
 
 WEIGHTS = {
-    "skill_match": 0.40,
-    "experience": 0.20,
-    "availability": 0.15,
-    "certifications": 0.10,
-    "projects": 0.10,
+    "skill_match": 0.25,
+    "experience": 0.15,
+    "availability": 0.10,
+    "certifications": 0.08,
+    "projects": 0.07,
     "rating": 0.05,
+    "location": 0.30,
 }
 
 
@@ -83,6 +84,20 @@ def _project_score(previous_projects, domain: str, employee_domains: list[str]) 
     return base
 
 
+def _location_score(employee_location: str, required_location: str) -> float:
+    """Score based on location match. Perfect match = 1.0, no match = 0.0."""
+    if not required_location or not required_location.strip():
+        # If no location specified in query, all locations score equally
+        return 1.0
+    
+    emp_loc = (employee_location or "").strip().lower()
+    req_loc = required_location.strip().lower()
+    
+    if emp_loc == req_loc:
+        return 1.0
+    return 0.0
+
+
 def score_candidate(employee: Employee, criteria: dict, semantic_score: float) -> tuple[float, dict, list[str]]:
     skill_s = _skill_score(employee.skills or [], criteria.get("skills", []), semantic_score)
     exp_s = _experience_score(employee.experience_years or 0, criteria.get("min_experience_years", 0))
@@ -90,6 +105,7 @@ def score_candidate(employee: Employee, criteria: dict, semantic_score: float) -
     cert_s = _certification_score(employee.certifications or [], criteria.get("certifications", []))
     proj_s = _project_score(employee.previous_projects, criteria.get("domain", ""), employee.domain_experience or [])
     rating_s = (employee.performance_rating or 0) / 5
+    loc_s = _location_score(employee.location, criteria.get("location", ""))
 
     breakdown = {
         "skill_match": round(skill_s * 100, 1),
@@ -98,6 +114,7 @@ def score_candidate(employee: Employee, criteria: dict, semantic_score: float) -
         "certifications": round(cert_s * 100, 1),
         "projects": round(proj_s * 100, 1),
         "rating": round(rating_s * 100, 1),
+        "location": round(loc_s * 100, 1),
     }
 
     total = (
@@ -107,6 +124,7 @@ def score_candidate(employee: Employee, criteria: dict, semantic_score: float) -
         + cert_s * WEIGHTS["certifications"]
         + proj_s * WEIGHTS["projects"]
         + rating_s * WEIGHTS["rating"]
+        + loc_s * WEIGHTS["location"]
     ) * 100
 
     reasons = []
@@ -114,6 +132,8 @@ def score_candidate(employee: Employee, criteria: dict, semantic_score: float) -
         reasons.append(f"{breakdown['skill_match']}% skill match")
     if criteria.get("domain") and criteria["domain"].lower() in [d.lower() for d in (employee.domain_experience or [])]:
         reasons.append(f"{criteria['domain']} domain experience")
+    if criteria.get("location") and loc_s >= 0.99:
+        reasons.append(f"Located in {criteria['location']}")
     if employee.certifications:
         reasons.append(f"Certified: {', '.join(employee.certifications[:2])}")
     if avail_s >= 0.8:

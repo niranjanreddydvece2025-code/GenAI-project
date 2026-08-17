@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import AnalyticsPage from "./pages/AnalyticsPage.jsx";
 import ChatbotPage from "./pages/ChatbotPage.jsx";
 import EmployeeProfilePage from "./pages/EmployeeProfilePage.jsx";
+import LocationSearchPage from "./pages/LocationSearchPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ShortlistPage from "./pages/ShortlistPage.jsx";
 import UploadResumePage from "./pages/UploadResumePage.jsx";
@@ -27,6 +28,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<ChatbotPage />} />
+        <Route path="location" element={<LocationSearchPage />} />
         <Route path="employee/:id" element={<EmployeeProfilePage />} />
         <Route path="shortlist" element={<ShortlistPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
