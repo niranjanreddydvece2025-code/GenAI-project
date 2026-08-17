@@ -64,8 +64,8 @@ class Allocation(Base):
     __tablename__ = "allocations"
 
     id = Column(Integer, primary_key=True, index=True)
-    employee_id = Column(Integer, ForeignKey("employees.id"))
-    project_id = Column(Integer, ForeignKey("projects.id"))
+    employee_id = Column(Integer, ForeignKey("employees.id"), unique=True, nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     allocation_status = Column(String(40), default="Bench")
     allocation_date = Column(Date, default=date.today)
 

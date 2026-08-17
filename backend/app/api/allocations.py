@@ -16,17 +16,21 @@ def create_allocation(
     db: Session = Depends(get_db),
 ):
     """Create a new allocation for an employee to a project."""
-    # Verify employee exists
     employee = db.query(Employee).filter(Employee.id == allocation.employee_id).first()
     if not employee:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
 
-    # Verify project exists
+    existing_allocation = db.query(Allocation).filter(Allocation.employee_id == allocation.employee_id).first()
+    if existing_allocation:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Employee is already allocated to a project",
+        )
+
     project = db.query(Project).filter(Project.id == allocation.project_id).first()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    # Create new allocation
     new_allocation = Allocation(
         employee_id=allocation.employee_id,
         project_id=allocation.project_id,
