@@ -43,6 +43,14 @@ export default function AnalyticsPage() {
     { name: "Allocated", value: data.employees_allocated },
     { name: "On Bench", value: data.employees_on_bench },
   ];
+  const scoreWeights = [
+    { name: "Skill Match", value: 40 },
+    { name: "Experience", value: 20 },
+    { name: "Availability", value: 15 },
+    { name: "Certifications", value: 10 },
+    { name: "Previous Projects", value: 10 },
+    { name: "Performance Rating", value: 5 },
+  ];
 
   return (
     <Box>
@@ -98,6 +106,26 @@ export default function AnalyticsPage() {
                 <PieChart>
                   <Pie data={allocationPie} dataKey="value" nameKey="name" outerRadius={100} label>
                     {allocationPie.map((_, idx) => (
+                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                Candidate Scoring Weights
+              </Typography>
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie data={scoreWeights} dataKey="value" nameKey="name" outerRadius={100} label>
+                    {scoreWeights.map((_, idx) => (
                       <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                     ))}
                   </Pie>

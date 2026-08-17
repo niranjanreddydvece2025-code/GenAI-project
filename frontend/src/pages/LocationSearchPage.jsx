@@ -30,53 +30,48 @@ export default function LocationSearchPage() {
   const [searched, setSearched] = useState(false);
   const { user } = useAuth();
 
-  // Function to filter candidates based on all criteria
+  const buildSearchQuery = (location, skill = "", availability = false) => {
+    const parts = [];
+    const skills = (skill || "")
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (skills.length > 0) {
+      parts.push(`skills: ${skills.join(", ")}`);
+    }
+
+    if (location) {
+      parts.push(`location: ${location}`);
+    }
+
+    if (availability) {
+      parts.push("immediate availability");
+    }
+
+    return parts.join("; ");
+  };
+
   const filterCandidates = async (location, skill = "", availability = false) => {
     setLoading(true);
     setError("");
 
     try {
-      const { data } = await client.get("/employees");
-      
-      let filtered = data;
-      
-      // If location is specified, filter by location
-      if (location) {
-        const normalizedLocation = (location || "").trim().toLowerCase();
-        filtered = filtered.filter((emp) => {
-          const empLocation = (emp.location || "").trim().toLowerCase();
-          return empLocation === normalizedLocation;
-        });
-        console.log(`Filtering by location: "${location}" -> Found ${filtered.length} candidates`);
+      const query = buildSearchQuery(location, skill, availability);
+      if (!query.trim()) {
+        setCandidates([]);
+        return;
       }
 
-      // Apply skill filter
-      if (skill && skill.trim()) {
-        const skillLower = skill.toLowerCase();
-        filtered = filtered.filter((emp) =>
-          emp.skills.some((sk) => sk.toLowerCase().includes(skillLower))
-        );
-      }
+      const { data } = await client.post("/searchCandidates", {
+        query,
+        top_k: 50,
+      });
 
-      // Apply availability filter
-      if (availability) {
-        const today = new Date().toISOString().split("T")[0];
-        filtered = filtered.filter((emp) => emp.availability_date <= today);
-      }
-
-      // Format candidates with required fields
-      const formattedCandidates = filtered.map((emp) => ({
-        employee: emp,
-        match_percent: 100,
-        score_breakdown: { location_match: 100 },
-        reasons: location ? ["Matches your location criteria"] : ["Match found"],
-        ai_summary: emp.ai_summary || "No summary available",
-      }));
-
-      setCandidates(formattedCandidates);
+      setCandidates(data?.candidates ?? []);
     } catch (err) {
-      console.error("Error filtering candidates:", err);
-      setError("Failed to load candidates.");
+      console.error("Error searching candidates:", err);
+      setError(err?.response?.data?.detail || "Failed to load candidates.");
     } finally {
       setLoading(false);
     }
