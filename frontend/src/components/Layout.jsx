@@ -5,8 +5,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const TABS = [
-  { label: "Chatbot Search", path: "/" },
-  { label: "Location Search", path: "/location" },
+  { label: "Location Search", path: "/" },
   { label: "Shortlist", path: "/shortlist" },
   { label: "Analytics", path: "/analytics" },
 ];

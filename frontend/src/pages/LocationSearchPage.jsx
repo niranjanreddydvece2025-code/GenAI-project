@@ -30,26 +30,23 @@ export default function LocationSearchPage() {
 
   // Function to filter candidates based on all criteria
   const filterCandidates = async (location, skill = "", availability = false) => {
-    if (!location) {
-      setCandidates([]);
-      return;
-    }
-
     setLoading(true);
     setError("");
 
     try {
       const { data } = await client.get("/employees");
       
-      // Trim and normalize location for comparison (case-insensitive)
-      const normalizedLocation = (location || "").trim().toLowerCase();
+      let filtered = data;
       
-      let filtered = data.filter((emp) => {
-        const empLocation = (emp.location || "").trim().toLowerCase();
-        return empLocation === normalizedLocation;
-      });
-
-      console.log(`Filtering by location: "${location}" -> Found ${filtered.length} candidates`);
+      // If location is specified, filter by location
+      if (location) {
+        const normalizedLocation = (location || "").trim().toLowerCase();
+        filtered = filtered.filter((emp) => {
+          const empLocation = (emp.location || "").trim().toLowerCase();
+          return empLocation === normalizedLocation;
+        });
+        console.log(`Filtering by location: "${location}" -> Found ${filtered.length} candidates`);
+      }
 
       // Apply skill filter
       if (skill && skill.trim()) {
@@ -70,7 +67,7 @@ export default function LocationSearchPage() {
         employee: emp,
         match_percent: 100,
         score_breakdown: { location_match: 100 },
-        reasons: ["Matches your location criteria"],
+        reasons: location ? ["Matches your location criteria"] : ["Match found"],
         ai_summary: emp.ai_summary || "No summary available",
       }));
 
@@ -90,6 +87,16 @@ export default function LocationSearchPage() {
         const { data } = await client.get("/employees");
         const uniqueLocations = [...new Set(data.map((emp) => emp.location).filter(Boolean))].sort();
         setLocations(uniqueLocations);
+        
+        // Load all candidates initially
+        const formattedCandidates = data.map((emp) => ({
+          employee: emp,
+          match_percent: 100,
+          score_breakdown: { location_match: 100 },
+          reasons: ["Available"],
+          ai_summary: emp.ai_summary || "No summary available",
+        }));
+        setCandidates(formattedCandidates);
       } catch (err) {
         setError("Failed to load locations.");
       } finally {
@@ -109,14 +116,17 @@ export default function LocationSearchPage() {
   // Search candidates when location is selected
   const handleLocationChange = async (event, newValue) => {
     setSelectedLocation(newValue);
-    setSkillFilter("");
-    setAvailabilityFilter(false);
     
-    // Call filter with the new location
-    if (newValue) {
-      await filterCandidates(newValue, "", false);
+    if (!newValue) {
+      // When location is cleared, show all candidates with filters
+      setSkillFilter("");
+      setAvailabilityFilter(false);
+      await filterCandidates("", "", false);
     } else {
-      setCandidates([]);
+      // When location is selected, reset filters
+      setSkillFilter("");
+      setAvailabilityFilter(false);
+      await filterCandidates(newValue, "", false);
     }
   };
 
@@ -145,10 +155,10 @@ export default function LocationSearchPage() {
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} gutterBottom>
-        Search by Location
+        Search Candidates
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Find candidates available in a specific location, with optional skill and availability filters.
+        Find candidates by location (optional) with skill and availability filters.
       </Typography>
 
       {/* Location Selection */}
@@ -184,7 +194,7 @@ export default function LocationSearchPage() {
           {selectedLocation && (
             <Stack spacing={2} sx={{ pt: 1, borderTop: "1px solid", borderColor: "divider" }}>
               <Typography variant="subtitle2" fontWeight={600}>
-                Filters
+                Additional Filters
               </Typography>
 
               <TextField
@@ -225,6 +235,52 @@ export default function LocationSearchPage() {
               </Stack>
             </Stack>
           )}
+
+          {/* General Filters (when no location selected) */}
+          {!selectedLocation && (
+            <Stack spacing={2} sx={{ pt: 1, borderTop: "1px solid", borderColor: "divider" }}>
+              <Typography variant="subtitle2" fontWeight={600}>
+                Filters
+              </Typography>
+
+              <TextField
+                size="small"
+                label="Filter by Skill (optional)"
+                placeholder="e.g., Java, Python, AWS"
+                value={skillFilter}
+                onChange={(e) => setSkillFilter(e.target.value)}
+              />
+
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Chip
+                  label="Immediately Available"
+                  onClick={() => setAvailabilityFilter(!availabilityFilter)}
+                  color={availabilityFilter ? "primary" : "default"}
+                  variant={availabilityFilter ? "filled" : "outlined"}
+                  sx={{ cursor: "pointer" }}
+                />
+              </Stack>
+
+              {/* Results Count */}
+              <Stack direction="row" spacing={1}>
+                <Box 
+                  sx={{ 
+                    flex: 1,
+                    p: 1, 
+                    bgcolor: "background.paper",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    textAlign: "center"
+                  }}
+                >
+                  <Typography variant="body2" fontWeight={600}>
+                    {candidates.length} candidate(s) found
+                  </Typography>
+                </Box>
+              </Stack>
+            </Stack>
+          )}
         </Stack>
       </Card>
 
@@ -241,11 +297,11 @@ export default function LocationSearchPage() {
       )}
 
       {/* Results */}
-      {!loading && selectedLocation && (
+      {!loading && (
         <>
           {candidates.length === 0 && (
             <Alert severity="info">
-              No candidates found for {selectedLocation}
+              No candidates found{selectedLocation ? ` for ${selectedLocation}` : ""}
               {skillFilter && ` with "${skillFilter}" skills`}
               {availabilityFilter && " who are immediately available"}. Try adjusting your filters.
             </Alert>
@@ -265,9 +321,9 @@ export default function LocationSearchPage() {
       )}
 
       {/* Initial State */}
-      {!loading && !selectedLocation && (
+      {!loading && candidates.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 8 }}>
-          Select a location to see available candidates
+          No candidates match your criteria
         </Typography>
       )}
     </Box>
