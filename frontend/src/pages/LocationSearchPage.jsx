@@ -3,6 +3,7 @@ import {
   Alert,
   Autocomplete,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -26,6 +27,7 @@ export default function LocationSearchPage() {
   const [shortlistedIds, setShortlistedIds] = useState(new Set());
   const [skillFilter, setSkillFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState(false);
+  const [searched, setSearched] = useState(false);
   const { user } = useAuth();
 
   // Function to filter candidates based on all criteria
@@ -87,16 +89,6 @@ export default function LocationSearchPage() {
         const { data } = await client.get("/employees");
         const uniqueLocations = [...new Set(data.map((emp) => emp.location).filter(Boolean))].sort();
         setLocations(uniqueLocations);
-        
-        // Load all candidates initially
-        const formattedCandidates = data.map((emp) => ({
-          employee: emp,
-          match_percent: 100,
-          score_breakdown: { location_match: 100 },
-          reasons: ["Available"],
-          ai_summary: emp.ai_summary || "No summary available",
-        }));
-        setCandidates(formattedCandidates);
       } catch (err) {
         setError("Failed to load locations.");
       } finally {
@@ -106,9 +98,9 @@ export default function LocationSearchPage() {
     fetchLocations();
   }, []);
 
-  // Reapply filters when skill or availability filter changes
+  // Reapply filters when skill or availability filter changes (only if already searched)
   useEffect(() => {
-    if (selectedLocation) {
+    if (searched) {
       filterCandidates(selectedLocation, skillFilter, availabilityFilter);
     }
   }, [skillFilter, availabilityFilter]);
@@ -116,18 +108,14 @@ export default function LocationSearchPage() {
   // Search candidates when location is selected
   const handleLocationChange = async (event, newValue) => {
     setSelectedLocation(newValue);
-    
-    if (!newValue) {
-      // When location is cleared, show all candidates with filters
-      setSkillFilter("");
-      setAvailabilityFilter(false);
-      await filterCandidates("", "", false);
-    } else {
-      // When location is selected, reset filters
-      setSkillFilter("");
-      setAvailabilityFilter(false);
-      await filterCandidates(newValue, "", false);
-    }
+    setSearched(false);
+    setCandidates([]);
+  };
+
+  // Handle search button click
+  const handleSearch = async () => {
+    setSearched(true);
+    await filterCandidates(selectedLocation, skillFilter, availabilityFilter);
   };
 
   const handleShortlist = async (candidateData) => {
@@ -229,10 +217,21 @@ export default function LocationSearchPage() {
                   }}
                 >
                   <Typography variant="body2" fontWeight={600}>
-                    {candidates.length} candidate(s) found
+                    {searched ? `${candidates.length} candidate(s) found` : "Click Search to view candidates"}
                   </Typography>
                 </Box>
               </Stack>
+
+              {/* Search Button */}
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleSearch}
+                disabled={loading}
+                sx={{ mt: 2 }}
+              >
+                Search
+              </Button>
             </Stack>
           )}
 
@@ -275,10 +274,21 @@ export default function LocationSearchPage() {
                   }}
                 >
                   <Typography variant="body2" fontWeight={600}>
-                    {candidates.length} candidate(s) found
+                    {searched ? `${candidates.length} candidate(s) found` : "Click Search to view candidates"}
                   </Typography>
                 </Box>
               </Stack>
+
+              {/* Search Button */}
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleSearch}
+                disabled={loading}
+                sx={{ mt: 2 }}
+              >
+                Search
+              </Button>
             </Stack>
           )}
         </Stack>
@@ -297,7 +307,7 @@ export default function LocationSearchPage() {
       )}
 
       {/* Results */}
-      {!loading && (
+      {!loading && searched && (
         <>
           {candidates.length === 0 && (
             <Alert severity="info">
@@ -320,10 +330,10 @@ export default function LocationSearchPage() {
         </>
       )}
 
-      {/* Initial State */}
-      {!loading && candidates.length === 0 && (
+      {/* No Search Yet Message */}
+      {!loading && !searched && (
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 8 }}>
-          No candidates match your criteria
+          Set your filters and click "Search" to view candidates
         </Typography>
       )}
     </Box>
